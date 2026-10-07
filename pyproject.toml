@@ -1,0 +1,18 @@
+[project]
+name = "browser-pilot"
+version = "0.1.0"
+description = "Drive a real, logged-in Chrome over CDP with one small, flat verb vocabulary"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["aiohttp>=3.8"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["browser_pilot*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
