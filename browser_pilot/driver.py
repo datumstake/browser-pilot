@@ -277,7 +277,9 @@ class Browser:
             if isinstance(where, str) and where.startswith("NO MATCH"):
                 return where
 
-            if where != "NO BOX":
+            # A dead eval returns None; that is the fallback's problem, not a
+            # crash in json.loads.
+            if isinstance(where, str) and where not in ("NO BOX", ""):
                 spot = json.loads(where)
                 for kind in ("mousePressed", "mouseReleased"):
                     await self._cmd(ws, "Input.dispatchMouseEvent", type=kind,
