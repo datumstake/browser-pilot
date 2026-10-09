@@ -1,6 +1,9 @@
 # browser-pilot
 
 [![ci](https://github.com/datumstake/browser-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/datumstake/browser-pilot/actions/workflows/ci.yml)
+[![tests](https://img.shields.io/badge/tests-6%20passing%20(no%20browser)-success)](tests)
+[![python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 A tiny driver that lets a program — or a language model — steer a **real,
 logged-in Chrome** over the DevTools Protocol, through one small vocabulary of
@@ -99,3 +102,11 @@ generation and the CDP message plumbing against a stub, so CI stays hermetic.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+Built by **[datumstake](https://github.com/datumstake)**. The rest of the set:
+
+[adapt-engine](https://github.com/datumstake/adapt-engine) — the rule-driven proposer ·
+[self-verifying-ratchet](https://github.com/datumstake/self-verifying-ratchet) — the measure-or-roll-back loop ·
+[focus-three](https://github.com/datumstake/focus-three) — a one-file offline focus tool
