@@ -34,13 +34,31 @@ TIMEOUT_S = 30
 MAX_TEXT = 12_000
 MAX_LINKS = 40
 
+#: Every query in this file goes through `deep()`, which walks open shadow roots.
+#: WHY: a page built from web components (Reddit's `faceplate-*` elements, most
+#: design-system widgets, anything Lit- or Stencil-based) keeps its real <input>
+#: inside a shadow root, where `document.querySelectorAll('input')` finds exactly
+#: nothing. A driver that cannot see those fields reports an empty page on a form
+#: that is plainly visible to the user — measured 2026-10-09 against a live
+#: signup flow, where `links()` listed five anchors and none of the four inputs.
+#: Closed shadow roots stay invisible; nothing in the platform can reach those.
+_DEEP = r"""
+  const deep = (root, sel) => {
+    let out = [...root.querySelectorAll(sel)];
+    for (const el of root.querySelectorAll('*'))
+      if (el.shadowRoot) out = out.concat(deep(el.shadowRoot, sel));
+    return out;
+  };
+"""
+
 #: JS that lists what a user could act on, numbered, visible elements only.
 #: Numbers rather than selectors on purpose: a small model quoting "14" back
 #: is reliable; a small model composing a CSS selector is not.
 _LINKS_JS = r"""
 (() => {
-  const els = [...document.querySelectorAll(
-    'a[href], button, input, select, textarea, [role=button], [onclick]')];
+  %DEEP%
+  const els = deep(document,
+    'a[href], button, input, select, textarea, [role=button], [onclick]');
   const out = [];
   for (const el of els) {
     const r = el.getBoundingClientRect();
@@ -57,7 +75,7 @@ _LINKS_JS = r"""
   }
   return JSON.stringify(out);
 })()
-""".replace("%MAX%", str(MAX_LINKS))
+""".replace("%MAX%", str(MAX_LINKS)).replace("%DEEP%", _DEEP)
 
 
 def _el_js(target: str, action: str) -> str:
@@ -66,17 +84,17 @@ def _el_js(target: str, action: str) -> str:
     quoted = json.dumps(target)
     return f"""
 (() => {{
+  {_DEEP}
   let el = null;
   if (/^\\d+$/.test({quoted}))
-    el = document.querySelector('[data-pilot-n="' + {quoted} + '"]');
+    el = deep(document, '[data-pilot-n="' + {quoted} + '"]')[0];
   if (!el) {{
     const want = {quoted}.toLowerCase();
     // Form fields first: "q" or "email" names an input's name= far more
     // often than a link's text, and a model will type a search query into an
     // anchor if links are scanned first.
-    const fields = [...document.querySelectorAll('input, textarea, select')];
-    const rest = [...document.querySelectorAll(
-        'a[href], button, [role=button], [onclick]')];
+    const fields = deep(document, 'input, textarea, select');
+    const rest = deep(document, 'a[href], button, [role=button], [onclick]');
     for (const cand of fields.concat(rest)) {{
       const label = ((cand.innerText || '') + ' ' + (cand.value || '') + ' ' +
                      (cand.placeholder || '') + ' ' + (cand.name || '') + ' ' +
@@ -230,12 +248,68 @@ class Browser:
         return await self._run(tab, c)
 
     async def type(self, target: str, text: str, tab: int = 0) -> str:
+        """Type into a field the way a person does: a real click, then real text.
+
+        2026-10-09, measured on a live signup form: the native-setter idiom below
+        — the one every "type into a React input" answer recommends — put the
+        right characters in the box and the form still refused to advance. Its
+        web component tracks its own value from trusted input events, so a
+        scripted `.value =` plus a synthetic `input` event is a value the
+        component never agreed to. A CDP mouse click at the field's centre
+        followed by `Input.insertText` produces events Chrome marks trusted, and
+        the same form accepted it immediately.
+
+        So: real events first, the setter kept only as the fallback for a field
+        with no box to click (hidden, zero-sized, scrolled out of a container).
+        """
         quoted = json.dumps(text)
 
         async def t(ws):
-            # The native-setter idiom: a React/controlled input ignores a bare
-            # el.value= because the framework's state never saw it. Setting
-            # through the prototype's own setter and then dispatching 'input'
+            where = await self._eval(ws, _el_js(
+                target,
+                "el.scrollIntoView({block:'center'});"
+                "const r = el.getBoundingClientRect();"
+                "window.__pilotEl = el;"
+                "if (r.width < 2 || r.height < 2) return 'NO BOX';"
+                "return JSON.stringify({x: Math.round(r.x + r.width / 2),"
+                " y: Math.round(r.y + r.height / 2),"
+                " name: (el.name || el.placeholder || el.tagName).slice(0, 60)});"))
+            if isinstance(where, str) and where.startswith("NO MATCH"):
+                return where
+
+            if where != "NO BOX":
+                spot = json.loads(where)
+                for kind in ("mousePressed", "mouseReleased"):
+                    await self._cmd(ws, "Input.dispatchMouseEvent", type=kind,
+                                    x=spot["x"], y=spot["y"], button="left",
+                                    clickCount=1)
+                await asyncio.sleep(0.15)
+                # Clear through a real Backspace on a real selection, so the
+                # component sees a deletion rather than a value that changed
+                # behind its back.
+                had = await self._eval(
+                    ws, "(() => { const el = window.__pilotEl; el.focus();"
+                        " if (el.setSelectionRange) el.setSelectionRange(0,"
+                        " el.value.length); return el.value.length; })()")
+                if had:
+                    for kind in ("keyDown", "keyUp"):
+                        await self._cmd(ws, "Input.dispatchKeyEvent", type=kind,
+                                        key="Backspace", code="Backspace",
+                                        windowsVirtualKeyCode=8,
+                                        nativeVirtualKeyCode=8)
+                    await asyncio.sleep(0.1)
+                await self._cmd(ws, "Input.insertText", text=text)
+                await asyncio.sleep(0.2)
+                got = await self._eval(
+                    ws, "(() => { const el = window.__pilotEl;"
+                        " return el ? el.value : ''; })()")
+                if got == text:
+                    return (f"typed into {spot['name']} = "
+                            f"{str(got)[:40]} (real events)")
+
+            # Fallback: the native-setter idiom. A controlled input ignores a
+            # bare el.value= because the framework's state never saw the write;
+            # going through the prototype's own setter and dispatching 'input'
             # is the write the framework believes.
             return await self._eval(ws, _el_js(
                 target,
@@ -249,7 +323,8 @@ class Browser:
                 f"el.dispatchEvent(new Event('input', {{bubbles: true}})); "
                 f"el.dispatchEvent(new Event('change', {{bubbles: true}})); "
                 f"return 'typed into ' + (el.name || el.placeholder || "
-                f"el.tagName).slice(0, 60) + ' = ' + el.value.slice(0, 40);"))
+                f"el.tagName).slice(0, 60) + ' = ' + el.value.slice(0, 40) + "
+                f"' (setter fallback)';"))
 
         return await self._run(tab, t)
 

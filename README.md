@@ -1,7 +1,7 @@
 # browser-pilot
 
 [![ci](https://github.com/datumstake/browser-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/datumstake/browser-pilot/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-6%20passing%20(no%20browser)-success)](tests)
+[![tests](https://img.shields.io/badge/tests-10%20passing%20(no%20browser)-success)](tests)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -75,12 +75,27 @@ reach what you signed that profile into. Everyday Chrome stays untouched.
 | `tabs()` | list open pages |
 | `screenshot()` | PNG bytes of the visible page |
 
-A couple of these encode scars worth keeping:
+A few of these encode scars worth keeping:
 
-- **`type` uses the native-setter idiom.** A controlled React input ignores a
-  bare `el.value = ...` because the framework's state never saw the write.
-  Setting through `HTMLInputElement.prototype`'s own setter and then dispatching
-  `input` is the write the framework believes.
+- **Every query walks open shadow roots.** A page built from web components —
+  Reddit's `faceplate-*` elements, most design systems, anything Lit or Stencil
+  — keeps its real `<input>` inside a shadow root, and
+  `document.querySelectorAll('input')` finds *nothing* there. On a one-field
+  test page with the input in a shadow root, the plain query finds **0**
+  actionable elements and the shadow-aware one finds **1**; against a live
+  signup form the difference was five anchors and none of the four inputs.
+  (Closed shadow roots stay invisible — nothing in the platform can reach them.)
+- **`type` clicks for real, then inserts text.** The native-setter idiom below
+  is the standard answer for React inputs, and it is not enough for a component
+  that tracks its own value from *trusted* events: measured 2026-10-09, the
+  characters appeared in the box and the form still refused to advance. A CDP
+  mouse click at the field's centre followed by `Input.insertText` produces
+  events Chrome marks `isTrusted`, and the same form accepted them. Clearing
+  goes the same road — a real `Backspace` over a real selection.
+- **The native-setter idiom is the fallback.** When a field has no box to click
+  (hidden, zero-sized, inside a scrolled container), `type` falls back to
+  setting through `HTMLInputElement.prototype`'s own setter and dispatching
+  `input` — the write a framework's state will at least believe.
 - **`press` sends the full raw→char→up sequence.** A JS app listening on
   `keydown` will miss a two-event dispatch; search boxes in particular.
 - **`fetch` navigates rather than `fetch()`-ing.** A cross-origin in-page fetch

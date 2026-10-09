@@ -52,3 +52,44 @@ def test_page_ws_clamps_tab_index(monkeypatch):
 
 def test_cdp_default_is_loopback():
     assert Browser().cdp.startswith("http://127.0.0.1")
+
+
+def test_queries_walk_shadow_roots():
+    """A page built from web components keeps its real <input> inside a shadow
+    root, where document.querySelectorAll('input') finds nothing. Every query
+    this driver generates has to walk open shadow roots or it reports an empty
+    page on a form the user can plainly see."""
+    assert "shadowRoot" in _LINKS_JS
+    assert "deep(document," in _LINKS_JS
+    js = _el_js("email", "return 1;")
+    assert "shadowRoot" in js
+    assert "deep(document, 'input, textarea, select')" in js
+
+
+def test_numbered_lookup_also_walks_shadow_roots():
+    """Numbering is useless if the number can only be found in the light DOM:
+    links() can mark an element inside a shadow root that click() then cannot
+    find."""
+    js = _el_js("14", "return 1;")
+    assert "deep(document, '[data-pilot-n=" in js
+
+
+def test_type_measures_the_field_before_typing():
+    """`type` clicks the field for real, which means it needs the box. The JS it
+    generates must report coordinates and say NO BOX rather than guessing."""
+    import inspect
+    src = inspect.getsource(Browser.type)
+    assert "Input.insertText" in src
+    assert "Input.dispatchMouseEvent" in src
+    assert "NO BOX" in src
+    # and the setter idiom survives as the fallback, not the first move
+    assert src.index("Input.insertText") < src.index("getOwnPropertyDescriptor")
+
+
+def test_type_clears_with_a_real_backspace():
+    """Clearing by assigning '' is the same untrusted write that made the
+    typing fail in the first place."""
+    import inspect
+    src = inspect.getsource(Browser.type)
+    assert "Backspace" in src
+    assert "setSelectionRange" in src
