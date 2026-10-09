@@ -66,9 +66,9 @@ reach what you signed that profile into. Everyday Chrome stays untouched.
 |---|---|
 | `goto(url)` | navigate; waits for `readyState == complete` |
 | `read()` | the page as plain text (capped) |
-| `links()` | numbered, visible, actionable elements |
+| `links()` | numbered, visible, actionable elements (walks open shadow roots) |
 | `click(target)` | click element number *or* first label match |
-| `type(target, text)` | type via the native-setter idiom (survives React) |
+| `type(target, text)` | real click + `Input.insertText` (trusted events; setter fallback) |
 | `press(key)` | synthetic Enter/Tab/Escape via full key-event sequence |
 | `submit(target)` | submit the form the target sits in |
 | `fetch(url)` | GET a URL *in-session* and return the body (reaches cookie-gated JSON) |
