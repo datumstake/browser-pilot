@@ -122,7 +122,7 @@ MIT. See [LICENSE](LICENSE).
 
 Built by **[datumstake](https://github.com/datumstake)**. The rest of the set:
 
+[gapsmith](https://github.com/datumstake/gapsmith) — resolve a whole class of porting gaps from rules that carry their own proof ·
+[ratchet](https://github.com/datumstake/ratchet) — automation that cannot grade its own work ·
 [pdftext](https://github.com/datumstake/pdftext) — PDF text extraction in one header file, no dependencies ·
-[adapt-engine](https://github.com/datumstake/adapt-engine) — resolve a whole class of porting gaps from rules that carry their own proof ·
-[self-verifying-ratchet](https://github.com/datumstake/self-verifying-ratchet) — automation that cannot grade its own work ·
-[focus-three](https://github.com/datumstake/focus-three) — three tasks, one timer, nothing else
+[focus-three](https://github.com/datumstake/focus-three) — three tasks, one timer, nothing else — a 153 KB native Windows app
