@@ -1,6 +1,6 @@
-# browser-pilot
+# handle
 
-[![ci](https://github.com/datumstake/browser-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/datumstake/browser-pilot/actions/workflows/ci.yml)
+[![ci](https://github.com/datumstake/handle/actions/workflows/ci.yml/badge.svg)](https://github.com/datumstake/handle/actions/workflows/ci.yml)
 [![tests](https://img.shields.io/badge/tests-10%20passing%20(no%20browser)-success)](tests)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -12,7 +12,7 @@ standard library plus `aiohttp`.
 
 ```python
 import asyncio
-from browser_pilot import Browser
+from handle import Browser
 
 async def main():
     b = Browser()                       # attaches to Chrome on :9222
@@ -122,6 +122,6 @@ MIT. See [LICENSE](LICENSE).
 
 Built by **[datumstake](https://github.com/datumstake)**. The rest of the set:
 
-[adapt-engine](https://github.com/datumstake/adapt-engine) — the rule-driven proposer ·
-[self-verifying-ratchet](https://github.com/datumstake/self-verifying-ratchet) — the measure-or-roll-back loop ·
-[focus-three](https://github.com/datumstake/focus-three) — a one-file offline focus tool
+[gapsmith](https://github.com/datumstake/gapsmith) — resolve a whole class of porting gaps from rules that carry their own proof ·
+[ratchet](https://github.com/datumstake/ratchet) — automation that cannot grade its own work ·
+[focus-three](https://github.com/datumstake/focus-three) — three tasks, one timer, nothing else

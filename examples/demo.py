@@ -18,7 +18,7 @@ is exactly what a model driving this would read back.
 import asyncio
 import sys
 
-from browser_pilot import Browser
+from handle import Browser
 
 
 async def main() -> int:

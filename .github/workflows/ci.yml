@@ -21,6 +21,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]" ruff
       - name: Lint
-        run: ruff check --select F,E9 browser_pilot tests examples/demo.py
+        run: ruff check --select F,E9 handle tests examples/demo.py
       - name: Test
         run: pytest -q

@@ -3,7 +3,7 @@ to break silently — the generated element-matching JS and the tab-selection
 clamp — against a stub, so CI stays hermetic."""
 import json
 
-from browser_pilot.driver import MAX_LINKS, Browser, _LINKS_JS, _el_js
+from handle.driver import MAX_LINKS, Browser, _LINKS_JS, _el_js
 
 
 def test_links_js_has_max_substituted():
